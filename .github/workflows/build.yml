@@ -9,11 +9,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Fix submodules (SSH to HTTPS)
+      - name: Force HTTPS globally and sync submodules
         run: |
-          # Прямая замена SSH адресов на HTTPS в файле настроек
-          sed -i 's|git@github.com:|https://github.com/|g' .gitmodules
-          sed -i 's|ssh://git@github.com/|https://github.com/|g' .gitmodules
+          # Этот чит-код заставит Git всегда использовать HTTPS вместо SSH для GitHub
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
+          git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
+          
+          # Теперь запускаем глубокое обновление
           git submodule update --init --recursive
 
       - name: Set up Java
