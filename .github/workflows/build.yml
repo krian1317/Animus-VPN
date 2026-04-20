@@ -8,17 +8,29 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Качаем всю историю для корректной работы сабмодулей
 
-      - name: Force HTTPS and Deep Sync
+      - name: Senior Submodule Fix
         run: |
-          # 1. Глобально меняем правила: любой запрос SSH превращаем в HTTPS
+          # Принудительно настраиваем Git на HTTPS для всех уровней вложенности
           git config --global url."https://github.com/".insteadOf "git@github.com:"
           git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
           
-          # 2. Глубокая прошивка всех вложенных модулей
+          # Находим все файлы .gitmodules и меняем SSH на HTTPS прямо в них
+          find . -name ".gitmodules" -type f -exec sed -i 's|git@github.com:|https://github.com/|g' {} +
+          find . -name ".gitmodules" -type f -exec sed -i 's|ssh://git@github.com/|https://github.com/|g' {} +
+          
+          # Инициализируем сабмодули первого уровня
           git submodule init
-          git submodule sync --recursive
-          git submodule update --init --recursive --depth 1
+          
+          # Теперь магия: рекурсивно обновляем всё, игнорируя ошибки протоколов
+          git submodule update --init --recursive --force
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21' # Нужно для сборки ядра sing-box
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -36,12 +48,6 @@ jobs:
 
       - name: Build Debug APK
         run: flutter build apk --debug
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: animus-vpn-debug-file
-          path: build/app/outputs/flutter-apk/app-debug.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
