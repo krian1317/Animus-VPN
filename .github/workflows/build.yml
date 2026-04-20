@@ -9,14 +9,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Force HTTPS globally and sync submodules
+      - name: Force HTTPS and Deep Sync
         run: |
-          # Этот чит-код заставит Git всегда использовать HTTPS вместо SSH для GitHub
+          # 1. Глобально меняем правила: любой запрос SSH превращаем в HTTPS
           git config --global url."https://github.com/".insteadOf "git@github.com:"
           git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
           
-          # Теперь запускаем глубокое обновление
-          git submodule update --init --recursive
+          # 2. Глубокая прошивка всех вложенных модулей
+          git submodule init
+          git submodule sync --recursive
+          git submodule update --init --recursive --depth 1
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -34,6 +36,12 @@ jobs:
 
       - name: Build Debug APK
         run: flutter build apk --debug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: animus-vpn-debug-file
+          path: build/app/outputs/flutter-apk/app-debug.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
