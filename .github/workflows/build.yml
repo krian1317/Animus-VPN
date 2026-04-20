@@ -8,29 +8,29 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # Качаем всю историю для корректной работы сабмодулей
 
-      - name: Senior Submodule Fix (Step-by-Step)
+      - name: The REAL Submodule Fix
         run: |
-          # Шаг 1: Инициализируем и скачиваем ТОЛЬКО первый уровень (hiddify-core). Без рекурсии!
+          # 1. СНАЧАЛА меняем ссылки в главном корневом файле
+          sed -i 's|git@github.com:|https://github.com/|g' .gitmodules
+          sed -i 's|ssh://git@github.com/|https://github.com/|g' .gitmodules
+          git submodule sync
+          
+          # 2. ТОЛЬКО ПОТОМ скачиваем первый уровень (hiddify-core)
           git submodule update --init
           
-          # Шаг 2: Теперь hiddify-core и его внутренний .gitmodules существуют на диске. 
-          # Находим все файлы .gitmodules во всем проекте и меняем SSH на HTTPS
+          # 3. Теперь папка появилась. Ищем все новые .gitmodules внутри неё и меняем ссылки
           find . -name ".gitmodules" -type f -exec sed -i 's|git@github.com:|https://github.com/|g' {} +
           find . -name ".gitmodules" -type f -exec sed -i 's|ssh://git@github.com/|https://github.com/|g' {} +
-          
-          # Шаг 3: Принудительно синхронизируем изменения из .gitmodules во внутренний конфиг Git
           git submodule sync --recursive
           
-          # Шаг 4: Теперь безопасно скачиваем все остальные вложенные сабмодули
-          git submodule update --init --recursive --force
+          # 4. Безопасно докачиваем самые глубокие слои (ray2sing и т.д.)
+          git submodule update --init --recursive
 
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.21' # Нужно для сборки ядра sing-box
+          go-version: '1.21'
 
       - name: Set up Java
         uses: actions/setup-java@v4
