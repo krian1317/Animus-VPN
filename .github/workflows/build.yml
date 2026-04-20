@@ -11,20 +11,20 @@ jobs:
         with:
           fetch-depth: 0 # Качаем всю историю для корректной работы сабмодулей
 
-      - name: Senior Submodule Fix
+      - name: Senior Submodule Fix (Step-by-Step)
         run: |
-          # Принудительно настраиваем Git на HTTPS для всех уровней вложенности
-          git config --global url."https://github.com/".insteadOf "git@github.com:"
-          git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
+          # Шаг 1: Инициализируем и скачиваем ТОЛЬКО первый уровень (hiddify-core). Без рекурсии!
+          git submodule update --init
           
-          # Находим все файлы .gitmodules и меняем SSH на HTTPS прямо в них
+          # Шаг 2: Теперь hiddify-core и его внутренний .gitmodules существуют на диске. 
+          # Находим все файлы .gitmodules во всем проекте и меняем SSH на HTTPS
           find . -name ".gitmodules" -type f -exec sed -i 's|git@github.com:|https://github.com/|g' {} +
           find . -name ".gitmodules" -type f -exec sed -i 's|ssh://git@github.com/|https://github.com/|g' {} +
           
-          # Инициализируем сабмодули первого уровня
-          git submodule init
+          # Шаг 3: Принудительно синхронизируем изменения из .gitmodules во внутренний конфиг Git
+          git submodule sync --recursive
           
-          # Теперь магия: рекурсивно обновляем всё, игнорируя ошибки протоколов
+          # Шаг 4: Теперь безопасно скачиваем все остальные вложенные сабмодули
           git submodule update --init --recursive --force
 
       - name: Set up Go
